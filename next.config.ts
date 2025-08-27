@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  experimental: {
+    serverComponentsExternalPackages: ['sharp', 'canvas'],
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push('sharp', 'canvas');
+    }
+    return config;
+  },
 };
-
-export default nextConfig;

@@ -99,6 +99,10 @@ importers:
       typescript:
         specifier: ^5
         version: 5.9.2
+    optionalDependencies:
+      '@img/sharp-linux-x64':
+        specifier: 0.34.3
+        version: 0.34.3
 
 packages:
 
