@@ -2,12 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['sharp', 'canvas'],
+    serverComponentsExternalPackages: ['canvas'],
   },
   webpack: (config, { isServer }) => {
     if (isServer) {
-      config.externals.push('sharp', 'canvas');
+      config.externals.push('canvas');
     }
     return config;
   },
 };
+
+export default nextConfig;

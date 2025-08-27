@@ -17,7 +17,7 @@ A modern, full-stack AI image generation application built with Next.js, TypeScr
 - **Styling**: Tailwind CSS, shadcn/ui components
 - **AI Integration**: Google Generative AI (Gemini)
 - **Canvas**: Konva.js for image editing
-- **Image Processing**: Sharp for image optimization
+- **Image Processing**: Images are handled as raw uploads on the server (no native image processing library required)
 - **Package Manager**: pnpm
 
 ## 📋 Prerequisites

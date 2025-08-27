@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { imageToImageWithImprovement } from '@/lib/gemini-client';
-import sharp from 'sharp';
 import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
@@ -23,9 +22,25 @@ export async function POST(request: NextRequest) {
     // Convert File to buffer
     const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
 
-    // Save temporarily
-    const tempPath = path.join(os.tmpdir(), `${Date.now()}.png`);
-    await sharp(imageBuffer).png().toFile(tempPath);
+    // Determine file extension from uploaded file if possible
+    const uploadedName = imageFile?.name || '';
+    const mimeType = imageFile?.type || '';
+
+    function mimeToExt(mime: string) {
+      if (!mime) return 'png';
+      if (mime === 'image/png') return 'png';
+      if (mime === 'image/jpeg' || mime === 'image/jpg') return 'jpg';
+      if (mime === 'image/webp') return 'webp';
+      if (mime === 'image/svg+xml') return 'svg';
+      return 'png';
+    }
+
+    let ext = path.extname(uploadedName).replace('.', '');
+    if (!ext) ext = mimeToExt(mimeType);
+
+    // Save temporarily (write raw bytes directly — no image processing library used)
+    const tempPath = path.join(os.tmpdir(), `${Date.now()}.${ext}`);
+    await fs.writeFile(tempPath, imageBuffer);
 
     // Use the improved workflow that handles image-to-image properly
     const result = await imageToImageWithImprovement(prompt, tempPath, {}, apiKey);

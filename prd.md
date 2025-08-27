@@ -254,19 +254,19 @@ All responses follow this structure:
 - [ ] Step 1: Install Gemini API client and image processing libraries
   - **Task**: Set up Next.js API routes with necessary dependencies and implement core API functions
   - **Files**:
-    - `package.json`: Add @google/generative-ai, sharp, canvas, @google/generativelanguage
+    - `package.json`: Add @google/generative-ai, canvas, @google/generativelanguage
     - `app/api/generate/route.ts`: Main generation endpoint with Gemini API integration
     - `app/api/edit/route.ts`: Image editing endpoint
     - `app/api/mask/route.ts`: Mask-based editing endpoint
     - `lib/gemini-client.ts`: Gemini API client wrapper functions
   - **Step Dependencies**: None
-  - **User Instructions**: Run `pnpm install @google/generative-ai sharp canvas @google/generativelanguage`
+  - **User Instructions**: Run `pnpm install @google/generative-ai  canvas @google/generativelanguage`
 
 **Gemini API Client Implementation** (`lib/gemini-client.ts`):
 ```typescript
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GenerativeLanguageClient } from '@google/generativelanguage';
-import sharp from 'sharp';
+// Note: In the implementation we read the files directly and base64-encode them; no 'sharp' dependency is required.
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const client = new GenerativeLanguageClient();
@@ -294,8 +294,9 @@ export async function generateImage(options: GenerateImageOptions) {
     };
 
     if (imagePath) {
-      // Convert image to base64
-      const imageBuffer = await sharp(imagePath).png().toBuffer();
+      // Convert image to base64 by reading the raw file bytes
+      const fs = await import('fs/promises');
+      const imageBuffer = await fs.readFile(imagePath);
       const base64Image = imageBuffer.toString('base64');
 
       requestBody.initImage = {
@@ -305,8 +306,9 @@ export async function generateImage(options: GenerateImageOptions) {
     }
 
     if (maskPath) {
-      // Use edit model for masking
-      const maskBuffer = await sharp(maskPath).png().toBuffer();
+      // Use edit model for masking by reading the mask file as raw bytes
+      const fs = await import('fs/promises');
+      const maskBuffer = await fs.readFile(maskPath);
       const base64Mask = maskBuffer.toString('base64');
 
       requestBody.maskImage = {
@@ -386,7 +388,6 @@ export async function POST(request: NextRequest) {
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
 import { imageToImage } from '@/lib/gemini-client';
-import sharp from 'sharp';
 
 export async function POST(request: NextRequest) {
   try {
@@ -398,17 +399,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Prompt and image are required' }, { status: 400 });
     }
 
-    // Convert File to buffer
+    // Convert File to buffer and write directly to a temp file (no sharp used)
     const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
-
-    // Save temporarily (in production, use cloud storage)
     const tempPath = `/tmp/${Date.now()}.png`;
-    await sharp(imageBuffer).png().toFile(tempPath);
+    const fs = require('fs');
+    fs.writeFileSync(tempPath, imageBuffer);
 
     const imageData = await imageToImage(prompt, tempPath);
 
     // Clean up temp file
-    require('fs').unlinkSync(tempPath);
+    fs.unlinkSync(tempPath);
 
     return NextResponse.json({
       success: true,
@@ -431,7 +431,6 @@ export async function POST(request: NextRequest) {
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
 import { inpaintImage } from '@/lib/gemini-client';
-import sharp from 'sharp';
 
 export async function POST(request: NextRequest) {
   try {
@@ -444,21 +443,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Prompt, image, and mask are required' }, { status: 400 });
     }
 
-    // Convert files to buffers
+    // Convert files to buffers and write directly to temporary files (no sharp used)
     const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
     const maskBuffer = Buffer.from(await maskFile.arrayBuffer());
 
-    // Save temporarily
     const tempImagePath = `/tmp/${Date.now()}_image.png`;
     const tempMaskPath = `/tmp/${Date.now()}_mask.png`;
 
-    await sharp(imageBuffer).png().toFile(tempImagePath);
-    await sharp(maskBuffer).png().toFile(tempMaskPath);
+    const fs = require('fs');
+    fs.writeFileSync(tempImagePath, imageBuffer);
+    fs.writeFileSync(tempMaskPath, maskBuffer);
 
     const imageData = await inpaintImage(prompt, tempImagePath, tempMaskPath);
 
     // Clean up temp files
-    const fs = require('fs');
     fs.unlinkSync(tempImagePath);
     fs.unlinkSync(tempMaskPath);
 
@@ -551,7 +549,7 @@ export async function POST(request: NextRequest) {
 ### Backend Architecture
 - **Runtime**: Next.js API routes (Node.js)
 - **AI Model**: Google Gemini 2.5 Flash Image
-- **Image Processing**: Sharp library
+- **Image Processing**: Images are handled as raw uploads and forwarded to the Gemini API; no local sharp dependency is required.
 - **Authentication**: API key-based (for demo purposes)
 
 ### Data Flow
