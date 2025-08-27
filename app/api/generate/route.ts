@@ -3,13 +3,17 @@ import { generateImageWithImprovedPrompt } from '@/lib/gemini-client';
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt } = await request.json();
+    const { prompt, apiKey } = await request.json();
 
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
-    const result = await generateImageWithImprovedPrompt({ prompt });
+    if (!apiKey) {
+      return NextResponse.json({ error: 'API key is required' }, { status: 400 });
+    }
+
+    const result = await generateImageWithImprovedPrompt({ prompt }, apiKey);
 
     return NextResponse.json({
       success: true,

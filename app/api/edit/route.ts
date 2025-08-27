@@ -10,9 +10,14 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const prompt = formData.get('prompt') as string;
     const imageFile = formData.get('image') as File;
+    const apiKey = formData.get('apiKey') as string;
 
     if (!prompt || !imageFile) {
       return NextResponse.json({ error: 'Prompt and image are required' }, { status: 400 });
+    }
+
+    if (!apiKey) {
+      return NextResponse.json({ error: 'API key is required' }, { status: 400 });
     }
 
     // Convert File to buffer
@@ -23,7 +28,7 @@ export async function POST(request: NextRequest) {
     await sharp(imageBuffer).png().toFile(tempPath);
 
     // Use the improved workflow that handles image-to-image properly
-    const result = await imageToImageWithImprovement(prompt, tempPath);
+    const result = await imageToImageWithImprovement(prompt, tempPath, {}, apiKey);
 
     // Clean up temp file
     await fs.unlink(tempPath);

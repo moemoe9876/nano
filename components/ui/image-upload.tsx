@@ -1,5 +1,5 @@
-'use client';
-
+"use client";
+/* eslint-disable @next/next/no-img-element */
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent } from '@/components/ui/card';
@@ -46,7 +46,7 @@ export function ImageUpload({ onImageUpload }: ImageUploadProps) {
           ) : isDragActive ? (
             <p>Drop the image here ...</p>
           ) : (
-            <p>Drag 'n' drop an image here, or click to select one</p>
+            <p>Drag &apos;n&apos; drop an image here, or click to select one</p>
           )}
         </div>
       </CardContent>
