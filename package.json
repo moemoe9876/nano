@@ -6,8 +6,7 @@
   "dev": "next dev",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint",
-    "postinstall": "npm rebuild sharp"
+    "lint": "eslint"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -45,8 +44,7 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "canvas",
-      "sharp"
+      "canvas"
     ]
   },
   "optionalDependencies": {
