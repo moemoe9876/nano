@@ -1,5 +1,5 @@
-'use client';
-
+"use client";
+/* eslint-disable @next/next/no-img-element */
 import { useState } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,9 +41,9 @@ export function ImageGallery({ images }: ImageGalleryProps) {
               <CardContent className="p-0">
                 <div className="aspect-square relative">
                     <img
-                        src={imageUrl}
-                        alt={`Generated image ${index + 1}`}
-                        className="w-full h-full object-cover"
+                      src={imageUrl}
+                      alt={`Generated image ${index + 1}`}
+                      className="w-full h-full object-cover"
                     />
                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <Button variant="outline" onClick={() => setSelectedImage(imageUrl)}>View</Button>

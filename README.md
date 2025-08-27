@@ -39,21 +39,21 @@ A modern, full-stack AI image generation application built with Next.js, TypeScr
    pnpm install
    ```
 
-3. **Set up environment variables**
-
-   Create a `.env.local` file in the root directory:
-   ```env
-   GOOGLE_AI_API_KEY=your_google_ai_api_key_here
-   ```
-
-4. **Run the development server**
+3. **Run the development server**
    ```bash
    pnpm dev
    ```
 
-5. **Open your browser**
+4. **Open your browser**
 
    Navigate to [http://localhost:3000](http://localhost:3000) to see the application.
+
+5. **Set up your API key**
+
+   When you first visit the application, you'll see an API key input section at the top. You'll need to:
+   - Get a Google AI API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - Enter your API key in the input field
+   - Click "Save" to store it locally
 
 ## 🎨 Usage
 
