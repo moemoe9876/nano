@@ -94,7 +94,7 @@ for part in response.candidates[0].content.parts:
   },
   "n": 1
 }
-```
+```no sharp
 
 **Python Example**:
 ```python

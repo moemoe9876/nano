@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
     }
-
+    // Convert File to buffer and write directly to a temp file (no sharp used)
     // Convert File to buffer
     const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
 
