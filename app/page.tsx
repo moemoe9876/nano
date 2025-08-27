@@ -1,103 +1,94 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImageUpload } from '@/components/ui/image-upload';
+import { PromptInput } from '@/components/ui/prompt-input';
+import { ImageGallery } from '@/components/ui/image-gallery';
+import { useImageGeneration } from '@/hooks/use-image-generation';
+
+type GenerationMode = 'text-to-image' | 'image-to-image';
+
+function dataURLtoFile(dataurl: string, filename: string): File {
+    const arr = dataurl.split(',');
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    if (!mimeMatch) {
+        throw new Error("Invalid data URL");
+    }
+    const mime = mimeMatch[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while(n--){
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, {type:mime});
+}
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [mode, setMode] = useState<GenerationMode>('text-to-image');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  const { images, isLoading, error, generate } = useImageGeneration();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const handleImageUpload = (file: File) => {
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleSubmit = (prompt: string) => {
+    generate(mode, prompt, imageFile || undefined);
+  };
+  
+  return (
+    <main className="min-h-screen bg-background text-foreground">
+      <div className="container mx-auto p-4 md:p-8">
+        <header className="text-center mb-8">
+          <h1 className="text-5xl font-bold tracking-tighter">Nano Banana</h1>
+          <p className="text-muted-foreground mt-2">AI Image Generation Studio</p>
+        </header>
+
+        <div className="max-w-4xl mx-auto">
+          <Tabs value={mode} onValueChange={(value) => setMode(value as GenerationMode)} className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="text-to-image">Text-to-Image</TabsTrigger>
+              <TabsTrigger value="image-to-image">Image-to-Image</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="text-to-image" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Text-to-Image Generation</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <PromptInput onSubmit={handleSubmit} isLoading={isLoading} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="image-to-image" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Image-to-Image Editing</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ImageUpload onImageUpload={handleImageUpload} />
+                  {imagePreview && <PromptInput onSubmit={handleSubmit} isLoading={isLoading} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          {error && <p className="text-destructive text-center mt-4">{error}</p>}
+          
+          <section className="mt-12">
+              <h2 className="text-3xl font-bold tracking-tighter mb-4">Generated Images</h2>
+              <ImageGallery images={images} />
+          </section>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </div>
+    </main>
   );
 }
