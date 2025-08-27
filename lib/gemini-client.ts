@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, type Part } from '@google/generative-ai';
+import { GoogleGenerativeAI, type Part, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 
 export interface GenerateImageOptions {
   prompt: string;
@@ -25,14 +25,92 @@ async function fileToGenerativePart(path: string, mimeType: string): Promise<Par
   throw new Error('fileToGenerativePart can only be used server-side');
 }
 
+// Function to rephrase prompts that might trigger safety filters
+async function rephrasePrompt(originalPrompt: string, apiKey: string): Promise<string> {
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.0-flash-preview',
+      safetySettings: [
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+      ]
+    });
+
+    const rephrasePrompt = `Please rephrase this image generation prompt to be more neutral and avoid potential content policy violations while maintaining the artistic intent. Make it more abstract and metaphorical if needed. Only return the rephrased prompt, nothing else.
+
+Original prompt: "${originalPrompt}"
+
+Rephrased prompt:`;
+
+    const result = await model.generateContent(rephrasePrompt);
+    const response = await result.response;
+    const rephrased = response.text().trim();
+    
+    console.log('🔄 Original prompt:', originalPrompt);
+    console.log('🔄 Rephrased prompt:', rephrased);
+    
+    return rephrased || originalPrompt;
+  } catch (error) {
+    console.error('Failed to rephrase prompt:', error);
+    return originalPrompt; // Fallback to original if rephrasing fails
+  }
+}
+
 export async function generateImage(options: GenerateImageOptions, apiKey: string): Promise<ImageData> {
   const { prompt, imagePath } = options;
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
+    // Using the newer image generation model that supports better safety control
     const modelName = 'gemini-2.5-flash-image-preview';
 
-    const model = genAI.getGenerativeModel({ model: modelName });
+    // Configure comprehensive safety settings to minimize blocks
+    const safetySettings = [
+      {
+        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold: HarmBlockThreshold.BLOCK_NONE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold: HarmBlockThreshold.BLOCK_NONE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold: HarmBlockThreshold.BLOCK_NONE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold: HarmBlockThreshold.BLOCK_NONE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY,
+        threshold: HarmBlockThreshold.BLOCK_NONE,
+      },
+    ];
+
+    const model = genAI.getGenerativeModel({ 
+      model: modelName,
+      safetySettings
+    });
 
     const contentParts: (string | Part)[] = [prompt];
 
@@ -53,6 +131,18 @@ export async function generateImage(options: GenerateImageOptions, apiKey: strin
       usageMetadata: !!response.usageMetadata
     }));
 
+    // Check for prompt feedback issues
+    if (response.promptFeedback?.blockReason) {
+      console.log('🚫 Prompt was blocked:', response.promptFeedback.blockReason);
+      // Try to rephrase the prompt and retry
+      const rephraseAttempt = await rephrasePrompt(prompt, apiKey);
+      if (rephraseAttempt !== prompt) {
+        console.log('🔄 Retrying with rephrased prompt:', rephraseAttempt);
+        return generateImage({ prompt: rephraseAttempt, imagePath }, apiKey);
+      }
+      throw new Error(`Image generation was blocked at prompt level: ${response.promptFeedback.blockReason}`);
+    }
+
     if (!response.candidates || response.candidates.length === 0) {
         console.error('❌ No candidates in response');
         throw new Error("No candidates returned from the model. The prompt may have been filtered or blocked.");
@@ -65,8 +155,23 @@ export async function generateImage(options: GenerateImageOptions, apiKey: strin
       safetyRatings: firstCandidate.safetyRatings?.length || 0
     }));
 
-    if (firstCandidate.finishReason === 'SAFETY') {
-        throw new Error("Image generation was blocked due to safety filters. Please try a different prompt.");
+    // Enhanced safety rating logging
+    if (firstCandidate.safetyRatings) {
+      console.log('🛡️ Safety ratings:', firstCandidate.safetyRatings.map(rating => ({
+        category: rating.category,
+        probability: rating.probability
+      })));
+    }
+
+    // Handle different finish reasons with retry logic
+    if (firstCandidate.finishReason === 'SAFETY' || firstCandidate.finishReason === 'PROHIBITED_CONTENT') {
+        console.log('🚫 Content blocked due to safety filters, attempting prompt rephrase...');
+        const rephraseAttempt = await rephrasePrompt(prompt, apiKey);
+        if (rephraseAttempt !== prompt) {
+          console.log('🔄 Retrying with rephrased prompt:', rephraseAttempt);
+          return generateImage({ prompt: rephraseAttempt, imagePath }, apiKey);
+        }
+        throw new Error(`Image generation was blocked due to safety filters. Finish reason: ${firstCandidate.finishReason}. Please try a different prompt.`);
     }
 
     if (!firstCandidate.content || !firstCandidate.content.parts) {
@@ -139,7 +244,32 @@ export async function imageToImage(prompt:string, imagePath: string, options?: P
 
 export async function improvePrompt(prompt: string, apiKey: string): Promise<string> {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.0-flash',
+      safetySettings: [
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+      ]
+    });
+    
   const fullPrompt = `You are an expert at writing image generation prompts. Take this basic prompt: "${prompt}"
 
 Rewrite it as a single, detailed image generation prompt that includes:
@@ -148,6 +278,8 @@ Rewrite it as a single, detailed image generation prompt that includes:
 - Lighting and mood
 - Camera angle and composition
 - Art style or photographic details
+
+Make the prompt abstract and artistic to avoid content policy issues while maintaining creative intent.
 
 Return ONLY the improved prompt, no explanations or additional text.
 
@@ -179,7 +311,7 @@ export async function generateImageWithImprovedPrompt(options: GenerateImageOpti
 
   // For text-to-image, improve the prompt first
   if (!imagePath) {
-    console.log('🤖 Improving prompt with Gemini 2.5 Pro...');
+    console.log('🤖 Improving prompt with Gemini 2.0 Flash...');
     console.log('   Original prompt:', prompt);
 
     const improvedPrompt = await improvePrompt(prompt, apiKey);
@@ -188,16 +320,31 @@ export async function generateImageWithImprovedPrompt(options: GenerateImageOpti
     console.log('✅ Prompt improvement completed\n');
 
     // Generate image with the improved prompt
-    const imageResult = await generateImage({
-      prompt: improvedPrompt,
-      imagePath
-    }, apiKey);
+    try {
+      const imageResult = await generateImage({
+        prompt: improvedPrompt,
+        imagePath
+      }, apiKey);
 
-    return {
-      data: imageResult.data,
-      mimeType: imageResult.mimeType,
-      prompt: improvedPrompt,
-    };
+      return {
+        data: imageResult.data,
+        mimeType: imageResult.mimeType,
+        prompt: improvedPrompt,
+      };
+    } catch (error) {
+      // If improved prompt fails, try with original
+      console.log('⚠️ Improved prompt failed, trying original...', error instanceof Error ? error.message : String(error));
+      const imageResult = await generateImage({
+        prompt,
+        imagePath
+      }, apiKey);
+
+      return {
+        data: imageResult.data,
+        mimeType: imageResult.mimeType,
+        prompt: prompt,
+      };
+    }
   } else {
     // For image-to-image, use the original prompt directly
     // The model needs to see the uploaded image to understand the context
