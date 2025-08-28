@@ -10,11 +10,11 @@ interface TextToImageTabProps {
 
 export function TextToImageTab({ handleSubmit, isLoading }: TextToImageTabProps) {
     return (
-        <Card>
+        <Card className="rounded-2xl shadow-lg border-slate-800 bg-slate-900">
             <CardHeader>
-                <CardTitle>Text-to-Image Generation</CardTitle>
+                <CardTitle className="text-xl font-semibold text-balance text-white">Text-to-Image Generation</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6 pt-0">
                 <PromptInput onSubmit={handleSubmit} isLoading={isLoading} />
             </CardContent>
         </Card>

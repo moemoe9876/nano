@@ -47,6 +47,7 @@ next-env.d.ts
 .copilot/
 .vscode/settings.json
 .idea/
+.playwright-mcp/
 
 # OS generated files
 .DS_Store

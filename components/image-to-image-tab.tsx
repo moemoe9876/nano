@@ -13,14 +13,16 @@ interface ImageToImageTabProps {
 
 export function ImageToImageTab({ handleSubmit, isLoading, handleImageUpload, imagePreview }: ImageToImageTabProps) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Image-to-Image Editing</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <ImageUpload onImageUpload={handleImageUpload} />
-                {imagePreview && <PromptInput onSubmit={handleSubmit} isLoading={isLoading} />}
-            </CardContent>
-        </Card>
+        <Card className="rounded-2xl shadow-lg border-slate-800 bg-slate-900">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold text-balance text-white">
+            Image-to-Image Editing
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6 pt-0 grid gap-6">
+          <ImageUpload onImageUpload={handleImageUpload} />
+          {imagePreview && <PromptInput onSubmit={handleSubmit} isLoading={isLoading} />}
+        </CardContent>
+      </Card>
     );
 }
