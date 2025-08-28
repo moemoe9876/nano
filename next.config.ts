@@ -1,9 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['canvas'],
-  },
+  serverExternalPackages: ['canvas'],
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals.push('canvas');

@@ -40,6 +40,18 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# project documentation
-prd.md
-*.md
+# AI Assistants
+.gemini/
+.claude/
+.cursor/
+.copilot/
+.vscode/settings.json
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Documentation
+docs/
+

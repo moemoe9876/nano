@@ -272,18 +272,17 @@ export async function improvePrompt(prompt: string, apiKey: string): Promise<str
     
   const fullPrompt = `You are an expert at writing image generation prompts. Take this basic prompt: "${prompt}"
 
-Rewrite it as a single, detailed image generation prompt that includes:
-- Specific visual details (subject appearance, clothing, expressions)
-- Setting and environment details
-- Lighting and mood
-- Camera angle and composition
-- Art style or photographic details
+Enhance it by adding more descriptive details while staying true to the original concept and intent. Focus on:
+- Adding specific visual details that naturally fit the scene
+- Improving clarity and specificity
+- Making it more vivid and detailed
+- Avoiding content policy issues
 
-Make the prompt abstract and artistic to avoid content policy issues while maintaining creative intent.
+Keep the core subject and action the same - do not change the fundamental concept of the original prompt.
 
-Return ONLY the improved prompt, no explanations or additional text.
+Return ONLY the enhanced prompt, no explanations or additional text.
 
-Improved prompt:`;
+Enhanced prompt:`;
 
     try {
       const result = await model.generateContent(fullPrompt);
@@ -294,7 +293,7 @@ Improved prompt:`;
       const lines = improvedText.split('\n');
       const promptLine = lines.find((line: string) =>
         line.length > 10 &&
-        !line.toLowerCase().includes('improved prompt:') &&
+        !line.toLowerCase().includes('enhanced prompt:') &&
         !line.toLowerCase().includes('here is') &&
         !line.toLowerCase().includes('here\'s')
       ) || lines[lines.length - 1];
@@ -309,31 +308,31 @@ Improved prompt:`;
 export async function generateImageWithImprovedPrompt(options: GenerateImageOptions, apiKey: string) {
   const { prompt, imagePath } = options;
 
-  // For text-to-image, improve the prompt first
+  // For text-to-image, enhance the prompt first
   if (!imagePath) {
-    console.log('🤖 Improving prompt with Gemini 2.0 Flash...');
+    console.log('🤖 Enhancing prompt with Gemini 2.0 Flash...');
     console.log('   Original prompt:', prompt);
 
-    const improvedPrompt = await improvePrompt(prompt, apiKey);
+    const enhancedPrompt = await improvePrompt(prompt, apiKey);
 
-    console.log('   Improved prompt:', improvedPrompt);
-    console.log('✅ Prompt improvement completed\n');
+    console.log('   Enhanced prompt:', enhancedPrompt);
+    console.log('✅ Prompt enhancement completed\n');
 
-    // Generate image with the improved prompt
+    // Generate image with the enhanced prompt
     try {
       const imageResult = await generateImage({
-        prompt: improvedPrompt,
+        prompt: enhancedPrompt,
         imagePath
       }, apiKey);
 
       return {
         data: imageResult.data,
         mimeType: imageResult.mimeType,
-        prompt: improvedPrompt,
+        prompt: enhancedPrompt,
       };
     } catch (error) {
-      // If improved prompt fails, try with original
-      console.log('⚠️ Improved prompt failed, trying original...', error instanceof Error ? error.message : String(error));
+      // If enhanced prompt fails, try with original
+      console.log('⚠️ Enhanced prompt failed, trying original...', error instanceof Error ? error.message : String(error));
       const imageResult = await generateImage({
         prompt,
         imagePath

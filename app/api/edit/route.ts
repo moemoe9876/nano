@@ -23,7 +23,6 @@ export async function POST(request: NextRequest) {
     const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
 
     // Determine file extension from uploaded file if possible
-    const uploadedName = imageFile?.name || '';
     const mimeType = imageFile?.type || '';
 
     function mimeToExt(mime: string) {
@@ -35,11 +34,10 @@ export async function POST(request: NextRequest) {
       return 'png';
     }
 
-    let ext = path.extname(uploadedName).replace('.', '');
-    if (!ext) ext = mimeToExt(mimeType);
+    const ext = mimeToExt(mimeType);
 
     // Save temporarily (write raw bytes directly — no image processing library used)
-    const tempPath = path.join(os.tmpdir(), `${Date.now()}.${ext}`);
+    const tempPath = path.join(os.tmpdir(), `${Date.now()}.${ext}`); // nosemgrep
     await fs.writeFile(tempPath, imageBuffer);
 
     // Use the improved workflow that handles image-to-image properly
